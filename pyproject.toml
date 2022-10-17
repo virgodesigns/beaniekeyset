@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "beaniekeyset"
+version = "0.1.0"
+description = ""
+authors = ["vamshi.aruru <vamshi.aruru@virgodesigns.ai>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+beanie = "^1.12.0"
+pydantic = {extras = ["all"], version = "^1.10.2"}
+python-dateutil = "^2.8.2"
+
+[tool.poetry.dev-dependencies]
+ipython = "^8.5.0"
+pre-commit = "^2.20.0"
+flake8 = "^5.0.4"
+black = "^22.10.0"
+pyright = "^1.1.275"
+isort = "^5.10.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
