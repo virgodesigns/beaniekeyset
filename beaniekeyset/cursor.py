@@ -77,7 +77,8 @@ class BeaniePage(Generic[T]):
         ]
         self.marker_0 = current_marker
         self.documents = [
-            original_model(**document.dict()) for document in documents[:per_page]
+            original_model(**document.dict(by_alias=True))
+            for document in documents[:per_page]
         ]
         excess = documents[per_page:]
         self.marker_1: Optional[Tuple[Any]] = None
@@ -91,6 +92,7 @@ class BeaniePage(Generic[T]):
 
         four = [self.marker_0, self.marker_1, self.marker_n, self.marker_nplus1]
         if backwards:
+            self.markers.reverse()
             self.documents.reverse()
             four.reverse()
         self._previous, self._first, self._last, self._next = four
