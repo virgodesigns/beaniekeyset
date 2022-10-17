@@ -4,11 +4,13 @@ https://github.com/djrobstep/sqlakeyset/blob/master/sqlakeyset/results.py
 """
 import base64
 import csv
-from typing import Any, Generic, List, Optional, Tuple, TypeVar
+from typing import Any, Generic, List, Optional, Tuple, Type, TypeVar
+
+from pydantic import BaseModel
 
 from beaniekeyset.serializer import BadBookmarkError, Serial
 
-T = TypeVar("T")
+T = TypeVar("T", bound=BaseModel)
 
 
 SERIALIZER_SETTINGS = {
@@ -53,10 +55,11 @@ def unserialize_bookmark(bookmark: str) -> Tuple[List[Any], bool]:
 class BeaniePage(Generic[T]):
     def __init__(
         self,
-        documents: List[T],
+        documents: List[Any],  # Fix this typing
         per_page: int,
         ordering_fields: List[Tuple[str, Any]],
         backwards: bool,
+        original_model: Type[T],
         current_cursor: Optional[str] = None,
     ) -> None:
         current_marker, _ = (
@@ -73,20 +76,22 @@ class BeaniePage(Generic[T]):
             for doc in self.original_documents
         ]
         self.marker_0 = current_marker
-        self.docs_to_return = documents[:per_page]
+        self.documents = [
+            original_model(**document.dict()) for document in documents[:per_page]
+        ]
         excess = documents[per_page:]
         self.marker_1: Optional[Tuple[Any]] = None
         self.marker_n: Optional[Tuple[Any]] = None
         self.marker_nplus1: Optional[Tuple[Any]] = None
-        if self.docs_to_return:
+        if self.documents:
             self.marker_1 = self.markers[0]
-            self.marker_n = self.markers[len(self.docs_to_return) - 1]
+            self.marker_n = self.markers[len(self.documents) - 1]
         if excess:
-            self.marker_nplus1 = self.markers[len(self.docs_to_return)]
+            self.marker_nplus1 = self.markers[len(self.documents)]
 
         four = [self.marker_0, self.marker_1, self.marker_n, self.marker_nplus1]
         if backwards:
-            self.docs_to_return.reverse()
+            self.documents.reverse()
             four.reverse()
         self._previous, self._first, self._last, self._next = four
 
@@ -168,11 +173,15 @@ class BeaniePage(Generic[T]):
         Boolean flagging whether this page contains as many rows as were
         requested in ``per_page``.
         """
-        return len(self.docs_to_return) == self.per_page
+        return len(self.documents) == self.per_page
 
     @property
     def all_bookmarks(self) -> List[str]:
         return [serialize_bookmark(((marker), False)) for marker in self.markers]
+
+    @property
+    def documents_with_cursors(self) -> List[Tuple[str, T]]:
+        return list(zip(self.all_bookmarks[: len(self.documents)], self.documents))
 
     @property
     def bookmark_first(self) -> str:

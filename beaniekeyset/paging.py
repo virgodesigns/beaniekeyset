@@ -45,10 +45,14 @@ def __get_model_with_added_fields(
     existing_field_names = list(projection_model.schema()["properties"].keys())
     final_field_names = list(final_fields.keys())
     fields_to_add = set(final_field_names) - set(existing_field_names)
-    _fields = {field: (Any, FieldInfo(default_value=None)) for field in fields_to_add}
-    return create_model(
+    _fields = {
+        str(field): (Any, FieldInfo(default_value=None, default=None))
+        for field in fields_to_add
+    }
+    model = create_model(
         "BeanieKeysetDynamicProjectionModel", __base__=projection_model, **_fields
     )
+    return model
 
 
 def __build_pagination_query(
@@ -140,9 +144,9 @@ def get_transformed_fields(
 
 def transform_beanie_query(
     beanie_query: FindMany[FindQueryResultType],
+    per_page: int,
     mode: PaginationMode = "forward",
     cursor: Optional[str] = None,
-    per_page: int = 25,
 ) -> FindMany[FindQueryResultType]:
     def __get_beanie_expression(direction: int):
         if direction == 1:
@@ -173,11 +177,12 @@ def transform_beanie_query(
 
 async def get_page_beanie(
     beanie_query: FindMany[FindQueryResultType],
+    per_page: int,
     mode: PaginationMode = "forward",
     cursor: Optional[str] = None,
-    per_page: int = 25,
 ) -> BeaniePage[FindQueryResultType]:
-    query = transform_beanie_query(beanie_query, mode, cursor, per_page)
+    original_projection_model = beanie_query.projection_model
+    query = transform_beanie_query(beanie_query, per_page, mode, cursor)
     docs = await query.to_list()
     return BeaniePage(
         documents=docs,
@@ -185,4 +190,5 @@ async def get_page_beanie(
         ordering_fields=query.sort_expressions,
         backwards=mode == "backwards",
         current_cursor=cursor,
+        original_model=original_projection_model,
     )
