@@ -72,7 +72,7 @@ class BeaniePage(Generic[T]):
         self.backwards = backwards
         self.current_marker = current_marker
         self.markers = [
-            tuple([getattr(doc, field) for field, _ in self.ordering_fields])
+            tuple([doc.dict(by_alias=True)[field] for field, _ in self.ordering_fields])
             for doc in self.original_documents
         ]
         self.marker_0 = current_marker

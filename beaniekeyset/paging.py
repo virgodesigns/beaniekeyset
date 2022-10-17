@@ -121,7 +121,6 @@ def get_transformed_fields(
 
     # unserialise the cursor.
     if cursor:
-        print("Handling cursor")
         place, _ = unserialize_bookmark(cursor)
         if len(place) != len(sort_expressions):
             raise InvalidPageError(

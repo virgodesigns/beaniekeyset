@@ -11,6 +11,8 @@ import uuid
 from io import StringIO
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
 
+from beanie.odm.fields import PydanticObjectId
+from bson import ObjectId
 from dateutil import parser
 
 
@@ -63,6 +65,22 @@ def bindecode(x):
     return base64.b64decode(x.encode("utf-8"))
 
 
+def oid_encode(x: ObjectId) -> str:
+    return str(x)
+
+
+def oid_decode(x: str) -> ObjectId:
+    return ObjectId(x)
+
+
+def pydantic_oid_encode(x: ObjectId) -> str:
+    return str(x)
+
+
+def pydantic_oid_decode(x: str) -> ObjectId:
+    return ObjectId(x)
+
+
 TYPES = [
     (str, "s"),
     (int, "i"),
@@ -73,6 +91,8 @@ TYPES = [
     (datetime.datetime, "dt", parser.parse),
     (datetime.date, "d", parsedate),
     (datetime.time, "t"),
+    (ObjectId, "oid", oid_encode, oid_decode),
+    (PydanticObjectId, "pyoid", pydantic_oid_encode, pydantic_oid_decode),
 ]
 
 BUILTINS = {
