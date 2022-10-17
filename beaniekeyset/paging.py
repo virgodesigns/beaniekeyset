@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import (
     Any,
-    Generic,
     List,
     Literal,
     Mapping,
@@ -10,29 +9,21 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 from beanie.odm.enums import SortDirection as BeanieSortDirection
 from beanie.odm.queries.find import FindMany
 from pydantic import BaseModel, create_model
+from pydantic.fields import FieldInfo
 
-from beaniekeyset.cursor import unserialize_bookmark
+from beaniekeyset.cursor import BeaniePage, unserialize_bookmark
 from beaniekeyset.serializer import InvalidPageError
 
 FindQueryResultType = TypeVar("FindQueryResultType", bound=BaseModel)
-T = TypeVar("T")
 
 PaginationMode = Union[Literal["forward"], Literal["backwards"]]
 SortDirection = Union[Literal[1], Literal[-1]]
-
-
-class BeaniePage(Generic[T]):
-    def __init__(
-        self,
-        documents: List[T],
-        ordering_fields: List[dict],
-    ) -> None:
-        super().__init__()
 
 
 @dataclass
@@ -54,7 +45,7 @@ def __get_model_with_added_fields(
     existing_field_names = list(projection_model.schema()["properties"].keys())
     final_field_names = list(final_fields.keys())
     fields_to_add = set(final_field_names) - set(existing_field_names)
-    _fields = {field: (Optional[Any], ...) for field in fields_to_add}
+    _fields = {field: (Any, FieldInfo(default_value=None)) for field in fields_to_add}
     return create_model(
         "BeanieKeysetDynamicProjectionModel", __base__=projection_model, **_fields
     )
@@ -161,7 +152,7 @@ def transform_beanie_query(
     transformed_fields = get_transformed_fields(
         find_expressions=beanie_query.find_expressions,
         sort_expressions=[
-            (field, direction.value)
+            (field, cast(SortDirection, direction))
             for field, direction in beanie_query.sort_expressions
         ],
         projection_map=__convert_prjection_model_to_dict(beanie_query.projection_model),
@@ -187,5 +178,11 @@ async def get_page_beanie(
     per_page: int = 25,
 ) -> BeaniePage[FindQueryResultType]:
     query = transform_beanie_query(beanie_query, mode, cursor, per_page)
-    await query.to_list()
-    return BeaniePage(documents=[], ordering_fields=[])
+    docs = await query.to_list()
+    return BeaniePage(
+        documents=docs,
+        per_page=per_page,
+        ordering_fields=query.sort_expressions,
+        backwards=mode == "backwards",
+        current_cursor=cursor,
+    )
