@@ -180,6 +180,7 @@ async def get_page_beanie(
     mode: PaginationMode = "forward",
     cursor: Optional[str] = None,
 ) -> BeaniePage[FindQueryResultType]:
+    beanie_query = beanie_query.clone()
     original_projection_model = beanie_query.projection_model
     query = transform_beanie_query(beanie_query, per_page, mode, cursor)
     docs = await query.to_list()
