@@ -4,7 +4,7 @@ https://github.com/djrobstep/sqlakeyset/blob/master/sqlakeyset/results.py
 """
 import base64
 import csv
-from typing import Any, Generic, List, Optional, Tuple, Type, TypeVar
+from typing import Any, Generic, List, Optional, Tuple, Type, TypeVar, Callable
 
 from pydantic import BaseModel
 
@@ -22,6 +22,25 @@ SERIALIZER_SETTINGS = {
 }
 
 serializer = Serial(**SERIALIZER_SETTINGS)
+
+
+def custom_bookmark_type(
+    type: Type[T],  # TODO: rename this in a major release
+    code: str,
+    d: Optional[Callable[[str], T]] = None,
+    s: Optional[Callable[[T], str]] = None,
+):
+    """Register (de)serializers for bookmarks to use for a custom type.
+
+    :param type: Python type to register.
+    :paramtype type: type
+    :param code: A short alphabetic code to use to identify this type in serialized bookmarks.
+    :paramtype code: str
+    :param serializer: A function mapping `type` values to strings. Default is
+        `str`.
+    :param deserializer: Inverse for `serializer`. Default is the `type`
+        constructor."""
+    serializer.register_type(type, code, deserializer=d, serializer=s)
 
 
 def serialize_bookmark(marker: Tuple[Tuple[Any], bool]) -> str:
